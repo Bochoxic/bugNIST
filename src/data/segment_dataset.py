@@ -5,6 +5,11 @@ import numpy as np
 
 import cv2
 import os
+import sys
+
+if not sys.warnoptions:
+    import warnings
+    warnings.simplefilter("ignore")
 
 def threshold(image, kernel, threshold_n):
     mask = image
@@ -16,23 +21,35 @@ def prepare_data(raw_directory, processed_directory):
     directories = os.listdir(raw_directory)
     kernel = np.ones((9,9),np.uint8)
     threshold_n = 90
+    max_images = 10
+
 
     for directory in directories:
         volumens = os.listdir(raw_directory+"/"+directory)
 
-        save_dir_mask = processed_directory + "/" + directory + "_masks/" 
-        save_dir_png = processed_directory + "/png_data/"
+        save_dir_mask_volume = processed_directory + "/" + directory + "_masks/"
+        save_dir_mask = processed_directory + "/masks/"
+        save_dir_imgs = processed_directory + "/imgs/"
 
         if os.path.exists(save_dir_mask) == False:
             print(f"Directory {save_dir_mask} not found, creating it...")
             os.mkdir(save_dir_mask)
 
-        if os.path.exists(save_dir_png) == False:
-            print(f"Directory {save_dir_png} not found, creating it...")
-            os.mkdir(save_dir_png)
+        if os.path.exists(save_dir_imgs) == False:
+            print(f"Directory {save_dir_imgs} not found, creating it...")
+            os.mkdir(save_dir_imgs)
+        
+        if os.path.exists(save_dir_mask_volume) == False:
+            print(f"Directory {save_dir_mask_volume} not found, creating it...")
+            os.mkdir(save_dir_mask_volume)
 
+        number_images = 0
         for volume in volumens:
-            print(f"Directory: {directory}\t Image: {volume}")
+            if number_images > max_images:
+                print("Number of max images allowed")
+                break
+            number_images = number_images + 1
+            print(f"Directory: {directory}\t Image: {volume}\t Number={number_images}")
             in_dir = raw_directory + "/" + directory + "/"
             image_tif = io.imread(in_dir+volume)
             mask_volume = np.empty_like(image_tif)
@@ -40,11 +57,11 @@ def prepare_data(raw_directory, processed_directory):
                 mask = threshold(image_tif[i], kernel, threshold_n)
                 mask_volume[i,:,:] = mask
                 image_name = volume[:-4]
-                io.imsave(save_dir_png+image_name+".png", image_tif[i])
-                io.imsave(save_dir_png+image_name+"label.png",mask)
+                io.imsave(save_dir_imgs+image_name+str(i)+".png", image_tif[i])
+                io.imsave(save_dir_mask+image_name+str(i)+".png",mask)
 
 
-            io.imsave(save_dir_mask+volume, mask_volume)
+            io.imsave(save_dir_mask_volume+volume, mask_volume)
 
 
 

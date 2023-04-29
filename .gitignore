@@ -1,5 +1,4 @@
 data/raw/Classification/
 data/raw/OriginalScans/
 data/processed/.fr-X6WWmU/
-data/processed/bugnist_64_split
-data/processed/bugnist_128_split
+data/processed/
