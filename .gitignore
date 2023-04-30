@@ -2,3 +2,5 @@ data/raw/Classification/
 data/raw/OriginalScans/
 data/processed/.fr-X6WWmU/
 data/processed/
+wandb/
+data/raw2/

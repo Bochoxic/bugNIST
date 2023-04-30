@@ -23,10 +23,28 @@ dir_img = Path('./data/processed/imgs/')
 dir_mask = Path('./data/processed/masks/')
 dir_checkpoint = Path('./models/checkpoints/')
 
+sweep_configuration = {
+    'method': 'bayes',
+    'name': 'sweep_bugnist',
+    'metric': {'goal': 'maximize', 'name': 'val_acc'},
+    'parameters': 
+    {
+        'batch_size': {'values': [16, 32, 64]},
+        'epochs': {'values': [5, 10, 15]},
+        'lr': {'max': 0.001, 'min': 0.000001},
+        'image_scale': {'values':[0.1,0.5,1]}
+     }
+}
+
+sweep_id = wandb.sweep(
+  sweep=sweep_configuration, 
+  project='sweep_bugnist'
+  )
 
 def train_model(
         model,
         device,
+        experiment,
         epochs: int = 5,
         batch_size: int = 1,
         learning_rate: float = 1e-5,
@@ -36,7 +54,8 @@ def train_model(
         amp: bool = False,
         weight_decay: float = 1e-8,
         momentum: float = 0.999,
-        gradient_clipping: float = 1.0,
+        gradient_clipping: float = 1.0
+        
 ):
     # 1. Create dataset
     try:
@@ -55,7 +74,7 @@ def train_model(
     val_loader = DataLoader(val_set, shuffle=False, drop_last=True, **loader_args)
 
     # (Initialize logging)
-    experiment = wandb.init(project='bugnist', resume='allow')
+    
     experiment.config.update(
         dict(epochs=epochs, batch_size=batch_size, learning_rate=learning_rate,
              val_percent=val_percent, save_checkpoint=save_checkpoint, img_scale=img_scale, amp=amp)
@@ -182,8 +201,8 @@ def get_args():
 
     return parser.parse_args()
 
+def main():
 
-if __name__ == '__main__':
     args = get_args()
 
     logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
@@ -209,13 +228,20 @@ if __name__ == '__main__':
 
     model.to(device=device)
 
+    experiment = wandb.init()
+
     train_model(
         model=model,
-        epochs=args.epochs,
-        batch_size=args.batch_size,
-        learning_rate=args.lr,
+        experiment=experiment,
+        epochs=wandb.config.epochs,
+        batch_size=wandb.config.batch_size,
+        learning_rate=wandb.config.lr,
         device=device,
-        img_scale=args.scale,
+        img_scale=wandb.config.image_scale,
         val_percent=args.val / 100,
         amp=args.amp
     )
+
+if __name__ == '__main__':
+
+    wandb.agent(sweep_id, function=main, count=10)
